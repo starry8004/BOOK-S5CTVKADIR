@@ -213,7 +213,10 @@ function calculateAverageViews(views) {
 
 // 요구사항 충족 여부 확인
 function checkRequirements(followers, avgViews) {
-    return followers >= 10000 && avgViews >= 10000;
+    const followersCount = parseNumber(followers);
+    // avgViews는 이미 숫자로 변환되어 있음
+    logger.info(`Checking requirements - Followers: ${followersCount}, Avg Views: ${avgViews}`);
+    return followersCount >= 10000 && avgViews >= 10000;
 }
 
 // CSV 변환 함수 개선
