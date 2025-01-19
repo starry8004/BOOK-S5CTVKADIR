@@ -12,8 +12,20 @@ const logger = {
 
 // 숫자 변환 함수 개선
 function parseNumber(text) {
+    // HTMLElement가 전달된 경우 textContent를 사용
+    if (text instanceof HTMLElement) {
+        text = text.textContent;
+    }
+    
+    // 객체인 경우 toString 사용
+    if (typeof text === 'object') {
+        text = text.toString();
+    }
+
     if (!text) return 0;
-    text = text.trim().replace(/,/g, '');
+    
+    // 숫자와 단위(만, 천, K, M)만 추출
+    text = text.replace(/[^0-9.만천KM]/g, '').trim();
     
     const units = {
         '만': 10000,
@@ -24,7 +36,10 @@ function parseNumber(text) {
 
     for (const [unit, multiplier] of Object.entries(units)) {
         if (text.includes(unit)) {
-            return parseFloat(text.replace(unit, '')) * multiplier;
+            const value = parseFloat(text.replace(unit, ''));
+            if (!isNaN(value)) {
+                return value * multiplier;
+            }
         }
     }
     
@@ -213,10 +228,29 @@ function calculateAverageViews(views) {
 
 // 요구사항 충족 여부 확인
 function checkRequirements(followers, avgViews) {
-    const followersCount = parseNumber(followers);
-    // avgViews는 이미 숫자로 변환되어 있음
-    logger.info(`Checking requirements - Followers: ${followersCount}, Avg Views: ${avgViews}`);
-    return followersCount >= 10000 && avgViews >= 10000;
+    try {
+        const followersCount = parseNumber(followers);
+        logger.info('Raw followers value:', followers);
+        logger.info('Parsed followers count:', followersCount);
+        logger.info('Raw avgViews value:', avgViews);
+        
+        // 상세한 조건 체크 로깅
+        const followersCheck = followersCount >= 10000;
+        const viewsCheck = avgViews >= 10000;
+        
+        logger.info(`Requirements check details:
+            Followers (${followersCount} >= 10000): ${followersCheck}
+            Avg Views (${avgViews} >= 10000): ${viewsCheck}
+        `);
+        
+        const result = followersCheck && viewsCheck;
+        logger.info('Final requirements check result:', result);
+        
+        return result;
+    } catch (error) {
+        logger.error('Error in checkRequirements:', error);
+        return false; // 에러 발생시 기본값으로 false 반환
+    }
 }
 
 // CSV 변환 함수 개선
