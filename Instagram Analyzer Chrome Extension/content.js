@@ -191,11 +191,16 @@ async function findReelsTab() {
 
 // 릴스 조회수 수집
 function collectReelsViews() {
-    return Array.from(document.querySelectorAll(SELECTORS.REELS_VIEW))
-        .filter(el => el.textContent.includes('회'))
-        .slice(0, 9)
+    // Instagram의 실제 조회수 표시 클래스를 사용
+    return Array.from(document.querySelectorAll('span.xdj266r.x11i5rnm.xat24cr.x1mh8g0r'))
+        .filter(span => {
+            const text = span.textContent.trim();
+            // 숫자와 단위(만/천)가 포함된 텍스트만 선택
+            return /^[\d,.]+만?천?$/.test(text);
+        })
+        .slice(0, 9)  // 최근 9개 릴스만 분석
         .map(el => {
-            const text = el.textContent.replace('조회수 ', '').replace('회', '');
+            const text = el.textContent.trim();
             return parseNumber(text);
         })
         .filter(count => !isNaN(count) && count > 0);
