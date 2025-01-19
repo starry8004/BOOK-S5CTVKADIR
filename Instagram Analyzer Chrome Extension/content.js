@@ -3,153 +3,239 @@ let currentAccount = null;
 let collectedData = [];
 let isUIVisible = true;
 
-// 디버깅을 위한 로그 함수
-function log(message) {
-    console.log(`[Instagram Analyzer] ${message}`);
-}
+// 향상된 로깅 시스템
+const logger = {
+    debug: (message) => console.debug(`[Instagram Analyzer] ${message}`),
+    info: (message) => console.log(`[Instagram Analyzer] ${message}`),
+    error: (message, error) => console.error(`[Instagram Analyzer] ${message}`, error)
+};
 
-// 숫자 변환 함수 (예: "1.5만" -> 15000)
+// 숫자 변환 함수 개선
 function parseNumber(text) {
     if (!text) return 0;
     text = text.trim().replace(/,/g, '');
-    if (text.includes('만')) {
-        return parseFloat(text.replace('만', '')) * 10000;
-    } else if (text.includes('천')) {
-        return parseFloat(text.replace('천', '')) * 1000;
+    
+    const units = {
+        '만': 10000,
+        '천': 1000,
+        'K': 1000,
+        'M': 1000000
+    };
+
+    for (const [unit, multiplier] of Object.entries(units)) {
+        if (text.includes(unit)) {
+            return parseFloat(text.replace(unit, '')) * multiplier;
+        }
     }
-    return parseFloat(text || '0');
+    
+    return parseFloat(text) || 0;
 }
 
-// 상태 업데이트 함수
-function updateStatus(message, type = 'info') {
-    const statusContainer = document.getElementById('analysis-status');
-    if (!statusContainer) return;
+// 상태 관리 클래스
+class StatusManager {
+    constructor() {
+        this.container = null;
+        this.timeoutId = null;
+    }
 
-    statusContainer.style.display = 'block';
-    statusContainer.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'}">●</span>
-            <span>${message}</span>
-        </div>
-    `;
+    getContainer() {
+        if (!this.container) {
+            this.container = document.getElementById('analysis-status');
+        }
+        return this.container;
+    }
 
-    // 성공/에러 메시지는 3초 후 사라짐
-    if (type === 'success' || type === 'error') {
-        setTimeout(() => {
-            statusContainer.style.display = 'none';
-        }, 3000);
+    update(message, type = 'info') {
+        const container = this.getContainer();
+        if (!container) return;
+
+        const colors = {
+            success: '#4caf50',
+            error: '#f44336',
+            info: '#2196f3'
+        };
+
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: ${colors[type]}">●</span>
+                <span>${message}</span>
+            </div>
+        `;
+
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+        }
+
+        if (type !== 'info') {
+            this.timeoutId = setTimeout(() => {
+                container.style.display = 'none';
+            }, 3000);
+        }
     }
 }
 
-// DOM 요소가 로드될 때까지 대기하는 함수
-async function waitForElement(selector, timeout = 5000) {
+const statusManager = new StatusManager();
+
+// DOM 요소 대기 함수 개선
+async function waitForElement(selector, timeout = 5000, parent = document) {
     const startTime = Date.now();
     
     while (Date.now() - startTime < timeout) {
-        const element = document.querySelector(selector);
+        const element = parent.querySelector(selector);
         if (element) {
             return element;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
     }
-    throw new Error(`${selector} 요소를 찾을 수 없습니다`);
+    throw new Error(`Element not found: ${selector}`);
 }
 
-// 계정 정보 수집
+// 선택자 상수
+const SELECTORS = {
+    STATS: 'header section li',
+    USERNAME: 'header h2, header h1',
+    BIO: 'header section > div:last-child',
+    REELS_VIEW: 'span._aacl, span.x1lliihq',
+    REELS_LINK: 'a[href*="/reels"], a[href*="/channel"]'
+};
+
+// 계정 정보 수집 함수 개선
 async function collectAccountInfo() {
     try {
-        log('분석 시작...');
-        updateStatus('계정 정보 수집 중...', 'info');
+        logger.info('Starting analysis...');
+        statusManager.update('계정 정보 수집 중...', 'info');
 
-        // 헤더 섹션이 로드될 때까지 대기
+        // 헤더 섹션 대기
         await waitForElement('header section');
         
         // 통계 데이터 수집
-        const statsList = document.querySelectorAll('header section li');
-        if (!statsList || statsList.length < 3) {
-            throw new Error('통계 정보를 찾을 수 없습니다. 프로필 페이지인지 확인해주세요.');
-        }
-
-        updateStatus('팔로워/팔로잉 정보 분석 중...', 'info');
-        const posts = statsList[0].textContent;
-        const followers = statsList[1].textContent;
-        const following = statsList[2].textContent;
-
-        // 사용자 이름 가져오기
-        const usernameElement = await waitForElement('header h2, header h1');
-        const username = usernameElement.textContent;
-
-        // 계정 설명 가져오기
-        const bio = document.querySelector('header section > div:last-child')?.textContent || '';
-
-        // 릴스 탭으로 이동
-        updateStatus('릴스 데이터 수집 중...', 'info');
-        log('릴스 탭 찾는 중...');
+        const stats = await collectStats();
         
-        // 릴스 탭 찾기 (여러 방식으로 시도)
-        const reelsTab = await new Promise(async (resolve) => {
-            let tab;
-            
-            // href로 찾기
-            tab = Array.from(document.querySelectorAll('a')).find(a => 
-                a.href.includes('/reels') || a.href.includes('/channel')
-            );
-            
-            if (!tab) {
-                // SVG title로 찾기
-                tab = Array.from(document.querySelectorAll('a')).find(a => 
-                    a.querySelector('svg title')?.textContent?.includes('릴스')
-                );
-            }
-            
-            resolve(tab);
-        });
+        // 사용자 정보 수집
+        const userInfo = await collectUserInfo();
+        
+        // 릴스 데이터 수집
+        const reelsData = await collectReelsData();
 
-        if (reelsTab) {
-            reelsTab.click();
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // 릴스 영상들이 로드될 때까지 대기
-            await waitForElement('span._aacl, span.x1lliihq');
-        }
-
-        // 릴스 조회수 수집
-        const viewElements = document.querySelectorAll('span._aacl, span.x1lliihq');
-        const views = Array.from(viewElements)
-            .filter(el => el.textContent.includes('회'))
-            .slice(0, 9)
-            .map(el => {
-                const text = el.textContent.replace('조회수 ', '').replace('회', '');
-                return parseNumber(text);
-            })
-            .filter(count => !isNaN(count) && count > 0);
-
-        const avgReelsViews = views.length ? views.reduce((a, b) => a + b, 0) / views.length : 0;
-        log(`평균 릴스 조회수: ${avgReelsViews}`);
-
-        // 조건 체크
-        const followersCount = parseNumber(followers);
-        const meetsRequirements = followersCount >= 10000 && avgReelsViews >= 10000;
-
+        // 데이터 통합 및 검증
         currentAccount = {
-            username,
-            posts,
-            followers,
-            following,
-            bio,
-            avgReelsViews,
+            ...stats,
+            ...userInfo,
+            ...reelsData,
             collectedAt: new Date().toISOString(),
-            meetsRequirements
+            meetsRequirements: checkRequirements(stats.followersCount, reelsData.avgReelsViews)
         };
 
-        updateStatus('분석 완료!', 'success');
-        log('데이터 수집 완료');
+        statusManager.update('분석 완료!', 'success');
+        logger.info('Data collection completed');
         updateUI();
     } catch (error) {
-        updateStatus(`오류 발생: ${error.message}`, 'error');
-        log(`오류 발생: ${error.message}`);
-        console.error('Error collecting account info:', error);
+        statusManager.update(`오류 발생: ${error.message}`, 'error');
+        logger.error('Error in collectAccountInfo:', error);
     }
+}
+
+// 통계 데이터 수집
+async function collectStats() {
+    const statsList = document.querySelectorAll(SELECTORS.STATS);
+    if (!statsList || statsList.length < 3) {
+        throw new Error('통계 정보를 찾을 수 없습니다. 프로필 페이지인지 확인해주세요.');
+    }
+
+    return {
+        posts: statsList[0].textContent,
+        followers: statsList[1].textContent,
+        following: statsList[2].textContent,
+        followersCount: parseNumber(statsList[1].textContent)
+    };
+}
+
+// 사용자 정보 수집
+async function collectUserInfo() {
+    const usernameElement = await waitForElement(SELECTORS.USERNAME);
+    const bio = document.querySelector(SELECTORS.BIO)?.textContent || '';
+
+    return {
+        username: usernameElement.textContent,
+        bio
+    };
+}
+
+// 릴스 데이터 수집
+async function collectReelsData() {
+    statusManager.update('릴스 데이터 수집 중...', 'info');
+    
+    const reelsTab = await findReelsTab();
+    if (reelsTab) {
+        reelsTab.click();
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await waitForElement(SELECTORS.REELS_VIEW);
+    }
+
+    const views = collectReelsViews();
+    const avgReelsViews = calculateAverageViews(views);
+    
+    return { avgReelsViews };
+}
+
+// 릴스 탭 찾기
+async function findReelsTab() {
+    const reelsTabByHref = document.querySelector(SELECTORS.REELS_LINK);
+    if (reelsTabByHref) return reelsTabByHref;
+
+    return Array.from(document.querySelectorAll('a')).find(a => 
+        a.querySelector('svg title')?.textContent?.includes('릴스')
+    );
+}
+
+// 릴스 조회수 수집
+function collectReelsViews() {
+    return Array.from(document.querySelectorAll(SELECTORS.REELS_VIEW))
+        .filter(el => el.textContent.includes('회'))
+        .slice(0, 9)
+        .map(el => {
+            const text = el.textContent.replace('조회수 ', '').replace('회', '');
+            return parseNumber(text);
+        })
+        .filter(count => !isNaN(count) && count > 0);
+}
+
+// 평균 조회수 계산
+function calculateAverageViews(views) {
+    return views.length ? views.reduce((a, b) => a + b, 0) / views.length : 0;
+}
+
+// 요구사항 충족 여부 확인
+function checkRequirements(followers, avgViews) {
+    return followers >= 10000 && avgViews >= 10000;
+}
+
+// CSV 변환 함수 개선
+function convertToCSV(data) {
+    const headers = [
+        'username',
+        'posts',
+        'followers',
+        'following',
+        'bio',
+        'avgReelsViews',
+        'collectedAt',
+        'meetsRequirements'
+    ];
+    
+    const csvRows = data.map(account => 
+        headers.map(header => {
+            const value = account[header];
+            // CSV 주입 방지를 위한 이스케이프 처리
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+                return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+        }).join(',')
+    );
+    
+    return [headers.join(','), ...csvRows].join('\n');
 }
 
 // UI 업데이트
@@ -299,8 +385,8 @@ function updateUI() {
 // 데이터 저장
 function saveData() {
     if (!currentAccount) {
-        log('저장할 데이터가 없습니다');
-        updateStatus('저장할 데이터가 없습니다', 'error');
+        logger.info('저장할 데이터가 없습니다');
+        statusManager.update('저장할 데이터가 없습니다', 'error');
         return;
     }
     
@@ -319,21 +405,9 @@ function saveData() {
     link.click();
     document.body.removeChild(link);
     
-    updateStatus('데이터 저장 완료!', 'success');
-    log('데이터 저장 완료');
+    statusManager.update('데이터 저장 완료!', 'success');
+    logger.info('데이터 저장 완료');
 }
-
-// CSV 변환
-function convertToCSV(data) {
-    const headers = ['username', 'posts', 'followers', 'following', 'bio', 'avgReelsViews', 'collectedAt', 'meetsRequirements'];
-    const rows = data.map(account => 
-        headers.map(header => JSON.stringify(account[header] || '')).join(',')
-    );
-    return [headers.join(','), ...rows].join('\n');
-}
-
-// 전역 함수로 등록
-window.saveData = saveData;
 
 // 키 입력 알림 표시
 function showKeyPressNotification(message) {
@@ -375,19 +449,32 @@ function showKeyPressNotification(message) {
     }, 2000);
 }
 
-// 키보드 이벤트 리스너
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'q' || e.key === 'Q') {
-        log('분석 시작 단축키 감지됨');
-        showKeyPressNotification('⌨️ 계정 분석 시작...');
-        collectAccountInfo();
-    } else if (e.key === 'w' || e.key === 'W') {
-        log('데이터 저장 단축키 감지됨');
-        showKeyPressNotification('⌨️ 데이터 저장 중...');
-        saveData();
-    }
-});
+// 이벤트 리스너 등록
+function initializeEventListeners() {
+    document.addEventListener('keydown', (e) => {
+        const keyHandlers = {
+            'q': () => {
+                logger.info('Analysis hotkey detected');
+                showKeyPressNotification('⌨️ 계정 분석 시작...');
+                collectAccountInfo();
+            },
+            'w': () => {
+                logger.info('Save data hotkey detected');
+                showKeyPressNotification('⌨️ 데이터 저장 중...');
+                saveData();
+            }
+        };
 
-// 초기 UI 생성
-log('확장 프로그램 초기화');
-updateUI();
+        const handler = keyHandlers[e.key.toLowerCase()];
+        if (handler) handler();
+    });
+}
+
+// 초기화
+function initialize() {
+    logger.info('Extension initialized');
+    updateUI();
+    initializeEventListeners();
+}
+
+initialize();

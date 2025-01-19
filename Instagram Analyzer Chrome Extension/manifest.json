@@ -8,6 +8,9 @@
       "storage",
       "downloads"
     ],
+    "host_permissions": [
+      "*://*.instagram.com/*"
+    ],
     "action": {
       "default_popup": "popup.html"
     },
