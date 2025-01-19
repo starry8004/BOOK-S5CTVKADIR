@@ -100,32 +100,63 @@ function updateUI() {
         position: fixed;
         top: 70px;
         right: 20px;
-        background: white;
+        background: #1a1a1a;
+        color: #ffffff;
         padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         z-index: 9999;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        min-width: 250px;
+        min-width: 280px;
+        border: 1px solid #333;
     `;
 
     if (!currentAccount) {
-        container.innerHTML = '<p style="margin: 0;">계정을 분석하려면 Q를 누르세요</p>';
+        container.innerHTML = `
+            <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 16px; color: #fff;">Instagram 계정 분석기</h3>
+            </div>
+            <div style="background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                <p style="margin: 0 0 10px 0; color: #fff;">📌 사용 방법</p>
+                <ol style="margin: 0; padding-left: 20px; color: #ccc;">
+                    <li>계정 프로필 페이지로 이동</li>
+                    <li>Q키를 눌러 분석 시작</li>
+                    <li>분석이 완료되면 W키로 저장</li>
+                </ol>
+            </div>
+            <div style="text-align: center; color: #ccc; padding: 10px; background: #252525; border-radius: 8px;">
+                계정을 분석하려면 Q를 누르세요
+            </div>
+        `;
     } else {
         container.innerHTML = `
-            <h3 style="margin: 0 0 10px 0; font-size: 16px;">${currentAccount.username}</h3>
-            <div style="margin: 5px 0;">팔로워: ${currentAccount.followers}</div>
-            <div style="margin: 5px 0;">평균 릴스 조회수: ${Math.round(currentAccount.avgReelsViews).toLocaleString()}</div>
-            <div style="margin: 10px 0; padding: 8px; background: ${currentAccount.meetsRequirements ? '#e8f5e9' : '#ffebee'}; border-radius: 4px; text-align: center;">
+            <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 16px; color: #fff;">계정 분석 결과</h3>
+            </div>
+            <div style="background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                <div style="margin-bottom: 8px;">
+                    <span style="color: #888;">계정명:</span>
+                    <span style="color: #fff; float: right;">${currentAccount.username}</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color: #888;">팔로워:</span>
+                    <span style="color: #fff; float: right;">${currentAccount.followers}</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <span style="color: #888;">평균 릴스 조회수:</span>
+                    <span style="color: #fff; float: right;">${Math.round(currentAccount.avgReelsViews).toLocaleString()}</span>
+                </div>
+            </div>
+            <div style="margin: 12px 0; padding: 10px; background: ${currentAccount.meetsRequirements ? '#1e3a1e' : '#3a1e1e'}; border-radius: 8px; text-align: center; color: #fff;">
                 ${currentAccount.meetsRequirements ? '✅ 조건 충족' : '❌ 조건 미달'}
             </div>
             <button onclick="saveData()" style="
                 width: 100%;
-                padding: 8px;
+                padding: 10px;
                 background: #0095f6;
                 color: white;
                 border: none;
-                border-radius: 4px;
+                border-radius: 8px;
                 cursor: pointer;
                 margin-top: 10px;
                 font-weight: 600;
