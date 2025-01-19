@@ -41,48 +41,80 @@ function updateStatus(message, type = 'info') {
     }
 }
 
+// DOM 요소가 로드될 때까지 대기하는 함수
+async function waitForElement(selector, timeout = 5000) {
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < timeout) {
+        const element = document.querySelector(selector);
+        if (element) {
+            return element;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error(`${selector} 요소를 찾을 수 없습니다`);
+}
+
 // 계정 정보 수집
 async function collectAccountInfo() {
     try {
         log('분석 시작...');
         updateStatus('계정 정보 수집 중...', 'info');
+
+        // 헤더 섹션이 로드될 때까지 대기
+        await waitForElement('header section');
         
-        // 게시물, 팔로워, 팔로잉 수 찾기 - 선택자 업데이트
-        const statsSection = document.querySelector('section._aa_r');
-        const stats = statsSection?.querySelectorAll('span._ac2a, span._aacl._aacp');
-        
-        if (!stats || stats.length < 3) {
+        // 통계 데이터 수집
+        const statsList = document.querySelectorAll('header section li');
+        if (!statsList || statsList.length < 3) {
             throw new Error('통계 정보를 찾을 수 없습니다. 프로필 페이지인지 확인해주세요.');
         }
 
         updateStatus('팔로워/팔로잉 정보 분석 중...', 'info');
-        const posts = stats[0].textContent;
-        const followers = stats[1].textContent;
-        const following = stats[2].textContent;
-        
-        // 사용자 이름 - 선택자 업데이트
-        const username = document.querySelector('h2._aacl._aacs._aact._aacx._aad7, h1._aacl._aacs._aact._aacx._aad7')?.textContent;
-        if (!username) {
-            throw new Error('사용자 이름을 찾을 수 없습니다');
-        }
-        
-        // 계정 설명 - 선택자 업데이트
-        const bio = document.querySelector('div._aa_c, div._aacl._aacp')?.textContent || '';
+        const posts = statsList[0].textContent;
+        const followers = statsList[1].textContent;
+        const following = statsList[2].textContent;
+
+        // 사용자 이름 가져오기
+        const usernameElement = await waitForElement('header h2, header h1');
+        const username = usernameElement.textContent;
+
+        // 계정 설명 가져오기
+        const bio = document.querySelector('header section > div:last-child')?.textContent || '';
 
         // 릴스 탭으로 이동
         updateStatus('릴스 데이터 수집 중...', 'info');
         log('릴스 탭 찾는 중...');
-        const reelsTab = Array.from(document.querySelectorAll('a')).find(a => 
-            a.href.includes('/reels') || a.textContent.includes('릴스')
-        );
         
+        // 릴스 탭 찾기 (여러 방식으로 시도)
+        const reelsTab = await new Promise(async (resolve) => {
+            let tab;
+            
+            // href로 찾기
+            tab = Array.from(document.querySelectorAll('a')).find(a => 
+                a.href.includes('/reels') || a.href.includes('/channel')
+            );
+            
+            if (!tab) {
+                // SVG title로 찾기
+                tab = Array.from(document.querySelectorAll('a')).find(a => 
+                    a.querySelector('svg title')?.textContent?.includes('릴스')
+                );
+            }
+            
+            resolve(tab);
+        });
+
         if (reelsTab) {
             reelsTab.click();
             await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 릴스 영상들이 로드될 때까지 대기
+            await waitForElement('span._aacl, span.x1lliihq');
         }
 
-        // 릴스 조회수 수집 - 선택자 업데이트
-        const viewElements = document.querySelectorAll('span.x1lliihq, span._a9zr');
+        // 릴스 조회수 수집
+        const viewElements = document.querySelectorAll('span._aacl, span.x1lliihq');
         const views = Array.from(viewElements)
             .filter(el => el.textContent.includes('회'))
             .slice(0, 9)
