@@ -1,6 +1,7 @@
 // content.js
 let currentAccount = null;
 let collectedData = [];
+let isUIVisible = true;
 
 // 디버깅을 위한 로그 함수
 function log(message) {
@@ -19,10 +20,32 @@ function parseNumber(text) {
     return parseFloat(text || '0');
 }
 
+// 상태 업데이트 함수
+function updateStatus(message, type = 'info') {
+    const statusContainer = document.getElementById('analysis-status');
+    if (!statusContainer) return;
+
+    statusContainer.style.display = 'block';
+    statusContainer.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'}">●</span>
+            <span>${message}</span>
+        </div>
+    `;
+
+    // 성공/에러 메시지는 3초 후 사라짐
+    if (type === 'success' || type === 'error') {
+        setTimeout(() => {
+            statusContainer.style.display = 'none';
+        }, 3000);
+    }
+}
+
 // 계정 정보 수집
 async function collectAccountInfo() {
     try {
         log('분석 시작...');
+        updateStatus('계정 정보 수집 중...', 'info');
         
         // 게시물, 팔로워, 팔로잉 수 찾기
         const stats = document.querySelectorAll('span._ac2a');
@@ -30,6 +53,7 @@ async function collectAccountInfo() {
             throw new Error('통계 정보를 찾을 수 없습니다');
         }
 
+        updateStatus('팔로워/팔로잉 정보 분석 중...', 'info');
         const posts = stats[0].textContent;
         const followers = stats[1].textContent;
         const following = stats[2].textContent;
@@ -41,6 +65,7 @@ async function collectAccountInfo() {
         const bio = document.querySelector('div._aa_c')?.textContent || '';
 
         // 릴스 탭으로 이동
+        updateStatus('릴스 데이터 수집 중...', 'info');
         log('릴스 탭 찾는 중...');
         const reelsTab = Array.from(document.querySelectorAll('a')).find(a => a.href.includes('/reels'));
         if (reelsTab) {
@@ -77,9 +102,11 @@ async function collectAccountInfo() {
             meetsRequirements
         };
 
+        updateStatus('분석 완료!', 'success');
         log('데이터 수집 완료');
         updateUI();
     } catch (error) {
+        updateStatus(`오류 발생: ${error.message}`, 'error');
         log(`오류 발생: ${error.message}`);
         console.error('Error collecting account info:', error);
     }
@@ -109,10 +136,51 @@ function updateUI() {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         min-width: 280px;
         border: 1px solid #333;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        ${!isUIVisible ? 'transform: translateX(calc(100% + 20px));' : ''}
+    `;
+
+    // 토글 버튼 추가
+    const toggleButton = document.createElement('button');
+    toggleButton.innerHTML = isUIVisible ? '◀' : '▶';
+    toggleButton.style.cssText = `
+        position: absolute;
+        left: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #1a1a1a;
+        border: 1px solid #333;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px 0 0 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-size: 12px;
+    `;
+    toggleButton.onclick = () => {
+        isUIVisible = !isUIVisible;
+        updateUI();
+    };
+    container.appendChild(toggleButton);
+
+    // 진행 상태 표시 컨테이너
+    const statusContainer = document.createElement('div');
+    statusContainer.id = 'analysis-status';
+    statusContainer.style.cssText = `
+        margin-top: 10px;
+        padding: 8px;
+        background: #252525;
+        border-radius: 8px;
+        font-size: 12px;
+        display: none;
     `;
 
     if (!currentAccount) {
-        container.innerHTML = `
+        container.innerHTML += `
             <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
                 <h3 style="margin: 0; font-size: 16px; color: #fff;">Instagram 계정 분석기</h3>
             </div>
@@ -124,12 +192,12 @@ function updateUI() {
                     <li>분석이 완료되면 W키로 저장</li>
                 </ol>
             </div>
-            <div style="text-align: center; color: #ccc; padding: 10px; background: #252525; border-radius: 8px;">
+            <div id="status-message" style="text-align: center; color: #ccc; padding: 10px; background: #252525; border-radius: 8px;">
                 계정을 분석하려면 Q를 누르세요
             </div>
         `;
     } else {
-        container.innerHTML = `
+        container.innerHTML += `
             <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
                 <h3 style="margin: 0; font-size: 16px; color: #fff;">계정 분석 결과</h3>
             </div>
@@ -164,6 +232,7 @@ function updateUI() {
         `;
     }
 
+    container.appendChild(statusContainer);
     document.body.appendChild(container);
 }
 
@@ -171,6 +240,7 @@ function updateUI() {
 function saveData() {
     if (!currentAccount) {
         log('저장할 데이터가 없습니다');
+        updateStatus('저장할 데이터가 없습니다', 'error');
         return;
     }
     
@@ -189,6 +259,7 @@ function saveData() {
     link.click();
     document.body.removeChild(link);
     
+    updateStatus('데이터 저장 완료!', 'success');
     log('데이터 저장 완료');
 }
 
