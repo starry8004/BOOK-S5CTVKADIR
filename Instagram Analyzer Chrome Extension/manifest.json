@@ -1,0 +1,32 @@
+{
+    "manifest_version": 3,
+    "name": "Instagram Account Analyzer",
+    "version": "1.0",
+    "description": "인스타그램 계정 분석 도구",
+    "permissions": [
+      "activeTab",
+      "storage",
+      "downloads"
+    ],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "content_scripts": [{
+      "matches": ["*://*.instagram.com/*"],
+      "js": ["content.js"]
+    }],
+    "commands": {
+      "start-analysis": {
+        "suggested_key": {
+          "default": "Ctrl+Q"
+        },
+        "description": "Start Analysis"
+      },
+      "collect-data": {
+        "suggested_key": {
+          "default": "Ctrl+W"
+        },
+        "description": "Collect Data"
+      }
+    }
+  }
