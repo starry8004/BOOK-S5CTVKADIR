@@ -47,10 +47,12 @@ async function collectAccountInfo() {
         log('분석 시작...');
         updateStatus('계정 정보 수집 중...', 'info');
         
-        // 게시물, 팔로워, 팔로잉 수 찾기
-        const stats = document.querySelectorAll('span._ac2a');
+        // 게시물, 팔로워, 팔로잉 수 찾기 - 선택자 업데이트
+        const statsSection = document.querySelector('section._aa_r');
+        const stats = statsSection?.querySelectorAll('span._ac2a, span._aacl._aacp');
+        
         if (!stats || stats.length < 3) {
-            throw new Error('통계 정보를 찾을 수 없습니다');
+            throw new Error('통계 정보를 찾을 수 없습니다. 프로필 페이지인지 확인해주세요.');
         }
 
         updateStatus('팔로워/팔로잉 정보 분석 중...', 'info');
@@ -58,23 +60,29 @@ async function collectAccountInfo() {
         const followers = stats[1].textContent;
         const following = stats[2].textContent;
         
-        // 사용자 이름
-        const username = document.querySelector('h2._aacl._aacs._aact._aacx._aad7').textContent;
+        // 사용자 이름 - 선택자 업데이트
+        const username = document.querySelector('h2._aacl._aacs._aact._aacx._aad7, h1._aacl._aacs._aact._aacx._aad7')?.textContent;
+        if (!username) {
+            throw new Error('사용자 이름을 찾을 수 없습니다');
+        }
         
-        // 계정 설명
-        const bio = document.querySelector('div._aa_c')?.textContent || '';
+        // 계정 설명 - 선택자 업데이트
+        const bio = document.querySelector('div._aa_c, div._aacl._aacp')?.textContent || '';
 
         // 릴스 탭으로 이동
         updateStatus('릴스 데이터 수집 중...', 'info');
         log('릴스 탭 찾는 중...');
-        const reelsTab = Array.from(document.querySelectorAll('a')).find(a => a.href.includes('/reels'));
+        const reelsTab = Array.from(document.querySelectorAll('a')).find(a => 
+            a.href.includes('/reels') || a.textContent.includes('릴스')
+        );
+        
         if (reelsTab) {
             reelsTab.click();
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // 릴스 조회수 수집
-        const viewElements = document.querySelectorAll('span.x1lliihq');
+        // 릴스 조회수 수집 - 선택자 업데이트
+        const viewElements = document.querySelectorAll('span.x1lliihq, span._a9zr');
         const views = Array.from(viewElements)
             .filter(el => el.textContent.includes('회'))
             .slice(0, 9)
@@ -123,7 +131,9 @@ function updateUI() {
     // 새 UI 생성
     const container = document.createElement('div');
     container.id = 'account-analyzer';
-    container.style.cssText = `
+    
+    // 기본 스타일 설정
+    const baseStyles = `
         position: fixed;
         top: 70px;
         right: 20px;
@@ -136,9 +146,15 @@ function updateUI() {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         min-width: 280px;
         border: 1px solid #333;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-        ${!isUIVisible ? 'transform: translateX(calc(100% + 20px));' : ''}
+        transition: transform 0.3s ease;
     `;
+    
+    // 토글 상태에 따른 위치 조정
+    const visibilityStyles = isUIVisible 
+        ? 'transform: translateX(0);'
+        : 'transform: translateX(calc(100% - 30px));';
+    
+    container.style.cssText = baseStyles + visibilityStyles;
 
     // 토글 버튼 추가
     const toggleButton = document.createElement('button');
@@ -160,11 +176,16 @@ function updateUI() {
         justify-content: center;
         padding: 0;
         font-size: 12px;
+        z-index: 1;
     `;
-    toggleButton.onclick = () => {
+    
+    // 토글 버튼 클릭 이벤트
+    toggleButton.addEventListener('click', (e) => {
+        e.stopPropagation();
         isUIVisible = !isUIVisible;
         updateUI();
-    };
+    });
+    
     container.appendChild(toggleButton);
 
     // 진행 상태 표시 컨테이너
@@ -179,8 +200,14 @@ function updateUI() {
         display: none;
     `;
 
+    // 나머지 UI 내용 추가
+    const mainContent = document.createElement('div');
+    mainContent.style.opacity = isUIVisible ? '1' : '0';
+    mainContent.style.transition = 'opacity 0.3s ease';
+    mainContent.style.pointerEvents = isUIVisible ? 'auto' : 'none';
+
     if (!currentAccount) {
-        container.innerHTML += `
+        mainContent.innerHTML = `
             <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
                 <h3 style="margin: 0; font-size: 16px; color: #fff;">Instagram 계정 분석기</h3>
             </div>
@@ -197,7 +224,7 @@ function updateUI() {
             </div>
         `;
     } else {
-        container.innerHTML += `
+        mainContent.innerHTML = `
             <div style="margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
                 <h3 style="margin: 0; font-size: 16px; color: #fff;">계정 분석 결과</h3>
             </div>
@@ -232,6 +259,7 @@ function updateUI() {
         `;
     }
 
+    container.appendChild(mainContent);
     container.appendChild(statusContainer);
     document.body.appendChild(container);
 }
