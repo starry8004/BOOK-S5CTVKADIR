@@ -158,22 +158,34 @@ async function collectStats() {
         throw new Error('통계 정보를 찾을 수 없습니다. 프로필 페이지인지 확인해주세요.');
     }
 
+    // 숫자만 추출하여 간단한 형식으로 변환
+    const postsRaw = statsList[0].textContent.match(/\d+/)[0];
+    const followersRaw = statsList[1].textContent.match(/[\d.]+[만천]?/)[0];
+    const followingRaw = statsList[2].textContent.match(/\d+/)[0];
+
     return {
-        posts: statsList[0].textContent,
-        followers: statsList[1].textContent,
-        following: statsList[2].textContent,
-        followersCount: parseNumber(statsList[1].textContent)
+        posts: postsRaw,
+        followers: followersRaw,
+        following: followingRaw,
+        followersCount: parseNumber(followersRaw)
     };
 }
 
 // 사용자 정보 수집
 async function collectUserInfo() {
     const usernameElement = await waitForElement(SELECTORS.USERNAME);
-    const bio = document.querySelector(SELECTORS.BIO)?.textContent || '';
+    const bioElement = document.querySelector(SELECTORS.BIO);
+    
+    // 링크 추출 로직 추가
+    let link = '';
+    const linkElement = bioElement?.querySelector('a');
+    if (linkElement) {
+        link = linkElement.href || linkElement.textContent;
+    }
 
     return {
         username: usernameElement.textContent,
-        bio
+        bio: link // bio 대신 링크 저장
     };
 }
 
@@ -256,28 +268,24 @@ function checkRequirements(followers, avgViews) {
 // CSV 변환 함수 개선
 function convertToCSV(data) {
     const headers = [
-        'username',
-        'posts',
-        'followers',
-        'following',
-        'bio',
-        'avgReelsViews',
-        'collectedAt',
-        'meetsRequirements'
+        '계정명',
+        '게시물',
+        '팔로워',
+        '팔로우',
+        '설명글링크'
     ];
     
-    const csvRows = data.map(account => 
-        headers.map(header => {
-            const value = account[header];
-            // CSV 주입 방지를 위한 이스케이프 처리
-            if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-                return `"${value.replace(/"/g, '""')}"`;
-            }
-            return value;
-        }).join(',')
-    );
+    const csvRows = data.map(account => {
+        return [
+            account.username,
+            account.posts,
+            account.followers,
+            account.following,
+            account.bio || ''
+        ].join(' ');  // 쉼표 대신 공백으로 구분
+    });
     
-    return [headers.join(','), ...csvRows].join('\n');
+    return [headers.join(' '), ...csvRows].join('\n');  // 헤더도 공백으로 구분
 }
 
 // UI 업데이트
