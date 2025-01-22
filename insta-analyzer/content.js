@@ -1,7 +1,3 @@
-// 모듈 import
-import StorageManager from './storage/StorageManager.js';
-import UIManager from './ui/UIManager.js';
-
 // 전역 상태 관리
 let currentAccount = null;
 let collectedData = [];

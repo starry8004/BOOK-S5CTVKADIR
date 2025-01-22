@@ -183,4 +183,4 @@ class UIManager {
     }
 }
 
-export default new UIManager();
+const uiManager = new UIManager();

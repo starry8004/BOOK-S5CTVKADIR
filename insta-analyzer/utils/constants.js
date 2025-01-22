@@ -1,11 +1,11 @@
 // 저장소 관련 상수
-export const STORAGE = {
+const STORAGE = {
     MAX_ACCOUNTS: 30,
     KEY: 'instagram_analyzer_accounts'
 };
 
 // DOM 선택자 상수
-export const SELECTORS = {
+const SELECTORS = {
     STATS: 'header section li',
     USERNAME: 'header h2, header h1',
     BIO: 'header section > div:last-child',
@@ -15,7 +15,7 @@ export const SELECTORS = {
 };
 
 // UI 관련 상수
-export const UI = {
+const UI = {
     CONTAINER_ID: 'account-analyzer',
     STATUS_ID: 'analysis-status',
     COLORS: {
@@ -36,7 +36,7 @@ export const UI = {
 };
 
 // 메시지 상수
-export const MESSAGES = {
+const MESSAGES = {
     ERRORS: {
         DUPLICATE_ACCOUNT: '이미 저장된 계정입니다.',
         STORAGE_FULL: '최대 저장 개수를 초과했습니다. (30개)',

@@ -17,10 +17,10 @@
     "content_scripts": [{
         "matches": ["*://*.instagram.com/*"],
         "js": [
-            "utils/constants.js",
-            "storage/StorageManager.js",
-            "ui/UIManager.js",
-            "content.js"
+            "/utils/constants.js",
+            "/storage/StorageManager.js",
+            "/ui/UIManager.js",
+            "/content.js"
         ]
     }],
     "commands": {
