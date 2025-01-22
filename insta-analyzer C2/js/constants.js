@@ -1,7 +1,5 @@
-window.InstagramAnalyzer = window.InstagramAnalyzer || {};
-
 // 저장소 관련 상수
-window.InstagramAnalyzer.STORAGE = {
+window.STORAGE = {
     MAX_ACCOUNTS: 30,
     KEY: 'instagram_analyzer_accounts'
 };
@@ -17,7 +15,7 @@ window.SELECTORS = {
 };
 
 // UI 관련 상수
-window.InstagramAnalyzer.UI = {
+window.UI = {
     CONTAINER_ID: 'account-analyzer',
     STATUS_ID: 'analysis-status',
     COLORS: {
@@ -38,7 +36,7 @@ window.InstagramAnalyzer.UI = {
 };
 
 // 메시지 상수
-window.InstagramAnalyzer.MESSAGES = {
+window.MESSAGES = {
     ERRORS: {
         DUPLICATE_ACCOUNT: '이미 저장된 계정입니다.',
         STORAGE_FULL: '최대 저장 개수를 초과했습니다. (30개)',
@@ -57,5 +55,3 @@ window.InstagramAnalyzer.MESSAGES = {
         SAVING: '데이터 저장 중...'
     }
 };
-
-console.log('Constants loaded successfully!');
