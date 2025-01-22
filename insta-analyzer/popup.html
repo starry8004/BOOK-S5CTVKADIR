@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    /* 팝업 창의 기본 스타일 */
+    body {
+      width: 300px;          /* 팝업 창의 너비 */
+      padding: 15px;         /* 내부 여백 */
+    }
+    /* 버튼 스타일 */
+    button {
+      width: 100%;          /* 버튼 너비를 부모 요소에 맞춤 */
+      margin: 5px 0;        /* 상하 여백 */
+      padding: 8px;         /* 내부 여백 */
+    }
+  </style>
+</head>
+<body>
+  <!-- 팝업 창 제목 -->
+  <h2>instaInfo-chrome-extension</h2>
+  <!-- 단축키 안내 섹션 -->
+  <p>단축키:</p>
+  <ul>
+    <li>Q: 현재 계정 분석</li>
+    <li>W: 데이터 저장</li>
+  </ul>
+  <!-- 데이터 다운로드 버튼 -->
+  <button id="downloadBtn">수집한 데이터 다운로드</button>
+  <!-- 팝업 창의 동작을 제어하는 스크립트 -->
+  <script src="popup.js"></script>
+</body>
+</html>
