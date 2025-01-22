@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Instagram Account Analyzer",
+    "name": "Instagram Analyzer C",
     "version": "1.0",
     "description": "인스타그램 계정 분석 도구",
     "permissions": [
@@ -37,4 +37,4 @@
             "description": "Collect Data"
         }
     }
-}
+}   
