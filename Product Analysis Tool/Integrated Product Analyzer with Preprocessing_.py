@@ -145,7 +145,7 @@ class ProductAnalyzer:
             
             # Remove rows with null or low search volume
             df = df.dropna(subset=[search_volume_col])
-            df = df[df[search_volume_col] > 500]
+            df = df[df[search_volume_col] > 7999]
             
             rows_after = len(df)
             
