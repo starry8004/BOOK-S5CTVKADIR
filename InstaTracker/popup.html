@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>InstaTracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+      padding: 10px;
+    }
+    button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h2>InstaTracker</h2>
+  <button id="startAnalysis">추천 계정 분석 (Alt+Q)</button>
+  <button id="saveData">데이터 저장 (Alt+W)</button>
+  <script>
+    document.getElementById('startAnalysis').addEventListener('click', () => {
+      chrome.runtime.sendMessage({ command: 'start-analysis' });
+    });
+    document.getElementById('saveData').addEventListener('click', () => {
+      chrome.runtime.sendMessage({ command: 'save-data' });
+    });
+  </script>
+</body>
+</html>
