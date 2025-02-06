@@ -1,12 +1,9 @@
-import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
+import openpyxl
 import re
 from tqdm import tqdm
 import time
-
-# tqdm의 pandas 적용 (각 행 처리 시 진행 바 표시)
-tqdm.pandas()
 
 def select_excel_file():
     """
@@ -14,80 +11,123 @@ def select_excel_file():
     선택된 파일 경로를 반환합니다.
     """
     root = tk.Tk()
-    root.withdraw()  # Tk 창을 숨깁니다.
+    root.withdraw()  # Tk 창 숨김
     file_path = filedialog.askopenfilename(
         title="엑셀 파일을 선택하세요",
         filetypes=[("Excel files", "*.xlsx *.xls")]
     )
     return file_path
 
-def load_data(file_path):
+def load_workbook_file(file_path):
     """
-    선택한 엑셀 파일을 읽어 Pandas DataFrame으로 반환합니다.
+    openpyxl을 사용하여 엑셀 파일을 불러오고, 기본 워크시트를 반환합니다.
     """
-    df = pd.read_excel(file_path)
-    return df
+    wb = openpyxl.load_workbook(file_path, data_only=True)
+    ws = wb.active
+    return ws
 
-def extract_date_columns(df):
+def get_header(ws):
     """
-    DataFrame의 컬럼 중 날짜 형식(예: 2025-02-03)에 해당하는 컬럼만 추출합니다.
-    (정규식을 활용하여 'YYYY-MM-DD' 형태를 인식)
+    첫 번째 행을 헤더로 간주하여, 각 셀의 값을 리스트로 반환합니다.
     """
-    date_cols = [col for col in df.columns if re.match(r'\d{4}-\d{2}-\d{2}', str(col))]
+    header = []
+    for cell in next(ws.iter_rows(min_row=1, max_row=1)):
+        header.append(cell.value)
+    return header
+
+def is_date_column(value):
+    """
+    컬럼명이 'YYYY-MM-DD' 형태인지 확인합니다.
+    """
+    if isinstance(value, str) and re.match(r'\d{4}-\d{2}-\d{2}', value):
+        return True
+    return False
+
+def extract_date_columns_indices(header):
+    """
+    헤더 리스트에서 날짜 형식(예: "2025-02-03")에 해당하는 컬럼 인덱스만 추출합니다.
+    """
+    date_cols = []
+    for idx, col in enumerate(header):
+        if is_date_column(col):
+            date_cols.append(idx)
     return date_cols
 
-def calculate_total_per_row(df, date_cols):
+def extract_category_indices(header):
     """
-    tqdm를 이용하여 각 행에 대해 날짜별 데이터의 합계를 계산합니다.
-    (진행 상황이 터미널에 표시됩니다.)
+    헤더에서 카테고리 관련 컬럼("대카테고리", "중카테고리", "소카테고리", "세부카테고리")의 인덱스를 추출합니다.
     """
-    # progress_apply를 사용하여 각 행마다 합계를 계산합니다.
-    df['total'] = df[date_cols].progress_apply(lambda row: row.sum(), axis=1)
-    return df
+    category_indices = {}
+    for idx, col in enumerate(header):
+        if col in ["대카테고리", "중카테고리", "소카테고리", "세부카테고리"]:
+            category_indices[col] = idx
+    return category_indices
 
-def recommend_categories(df, top_n=5):
+def process_rows(ws, header, date_indices, category_indices):
     """
-    'total' 컬럼을 기준으로 DataFrame을 내림차순 정렬하고,
-    상위 top_n개의 결과를 반환합니다.
+    각 행에 대해 날짜 형식 컬럼의 값을 합산하고, 
+    카테고리 정보와 함께 딕셔너리 형태로 리스트에 저장합니다.
+    tqdm를 사용하여 진행 상황을 표시합니다.
     """
-    df_sorted = df.sort_values(by='total', ascending=False)
-    return df_sorted.head(top_n)
+    rows_data = []
+    total_rows = ws.max_row - 1  # 헤더를 제외한 행의 수
+    for row in tqdm(ws.iter_rows(min_row=2, max_row=ws.max_row), total=total_rows, desc="Processing rows"):
+        row_values = [cell.value for cell in row]
+        total = 0
+        for idx in date_indices:
+            try:
+                val = row_values[idx]
+                if isinstance(val, (int, float)):
+                    total += val
+            except Exception as e:
+                pass  # 값이 없거나 숫자가 아닌 경우 건너뜀
+        # 카테고리 정보 추출
+        data = {}
+        for key, idx in category_indices.items():
+            data[key] = row_values[idx]
+        data['total'] = total
+        rows_data.append(data)
+    return rows_data
+
+def recommend_categories(rows_data, top_n=5):
+    """
+    'total' 값을 기준으로 내림차순 정렬 후 상위 top_n개의 카테고리를 반환합니다.
+    """
+    rows_data_sorted = sorted(rows_data, key=lambda x: x['total'], reverse=True)
+    return rows_data_sorted[:top_n]
 
 def main():
-    # 1. 엑셀 파일 선택
     file_path = select_excel_file()
     if not file_path:
         print("파일이 선택되지 않았습니다.")
         return
-    
+
     print("엑셀 파일을 불러오는 중입니다...")
-    df = load_data(file_path)
+    ws = load_workbook_file(file_path)
     
-    # 2. 날짜 형식의 컬럼 선택
-    date_cols = extract_date_columns(df)
-    if not date_cols:
+    header = get_header(ws)
+    print("헤더:", header)
+    
+    date_indices = extract_date_columns_indices(header)
+    if not date_indices:
         print("날짜 형식의 컬럼이 발견되지 않았습니다.")
         return
-    print(f"날짜 컬럼: {date_cols}")
+    print("날짜 컬럼 인덱스:", date_indices)
     
-    # 3. 각 행(카테고리)마다 날짜 데이터 합계 계산 (진행 상황 표시)
-    print("각 카테고리의 총합 계산 중...")
-    df = calculate_total_per_row(df, date_cols)
+    category_indices = extract_category_indices(header)
+    if not category_indices:
+        print("카테고리 관련 컬럼이 발견되지 않았습니다.")
+        return
+    print("카테고리 컬럼 인덱스:", category_indices)
     
-    # (잠깐 진행 상황을 눈으로 확인하기 위해 약간의 딜레이)
+    print("각 행의 날짜 데이터 합계를 계산하는 중...")
+    rows_data = process_rows(ws, header, date_indices, category_indices)
     time.sleep(1)
     
-    # 4. 추천 카테고리 상위 top 5 결과 추출
-    recommended = recommend_categories(df, top_n=5)
-    print("\n추천 카테고리 (날짜 데이터 합계 기준 Top 5):")
-    # 예시로 대카테고리, 중카테고리, 소카테고리, 세부카테고리와 total 값을 출력합니다.
-    cols_to_show = ['대카테고리', '중카테고리', '소카테고리', '세부카테고리', 'total']
-    # 만약 해당 컬럼들이 존재하지 않으면 전체 DataFrame을 출력합니다.
-    for col in cols_to_show:
-        if col not in recommended.columns:
-            cols_to_show = recommended.columns
-            break
-    print(recommended[cols_to_show].to_string(index=False))
+    recommended = recommend_categories(rows_data, top_n=5)
+    print("\n추천 카테고리 (Top 5):")
+    for data in recommended:
+        print(data)
     
 if __name__ == "__main__":
     main()
