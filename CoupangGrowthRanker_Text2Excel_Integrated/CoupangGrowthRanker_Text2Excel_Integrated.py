@@ -130,15 +130,17 @@ def rank_categories_by_growth(rows_data):
         data['rank'] = rank
     return rows_data_sorted
 
-# 계산된 결과를 엑셀 파일로 바로 저장하는 함수
+# 계산된 결과를 원본 파일과 같은 경로에 엑셀 파일로 저장하는 함수
 def save_results_to_excel(ranked_data, original_file_path):
     """
-    계산된 카테고리 성장률 결과를 엑셀 파일로 저장합니다.
+    계산된 카테고리 성장률 결과를 원본 파일과 같은 디렉토리에 엑셀 파일로 저장합니다.
     파일명은 원본 파일명을 기반으로 현재 날짜와 시간을 포함합니다.
     """
     base_name = os.path.splitext(os.path.basename(original_file_path))[0]
     now_str = datetime.now().strftime("%Y-%m-%d_%H%M")
-    output_file = f"{base_name}_{now_str}_growthRanked.xlsx"
+    # 원본 파일이 있는 경로를 추출하여 그 경로에 저장
+    directory = os.path.dirname(original_file_path)
+    output_file = os.path.join(directory, f"{base_name}_{now_str}_growthRanked.xlsx")
     
     wb = Workbook()
     ws = wb.active
@@ -153,7 +155,7 @@ def save_results_to_excel(ranked_data, original_file_path):
         ws.append(row)
     
     wb.save(output_file)
-    print(f"\n엑셀 파일 저장 완료: {output_file}")
+    print(f"\n엑셀 파일이 원본 파일과 동일한 경로에 저장되었습니다: {output_file}")
 
 # 메인 함수: 데이터를 계산하고, 엑셀 파일로 저장하는 전체 과정을 수행
 def main():
@@ -190,7 +192,7 @@ def main():
     for data in ranked_data:
         print(f"Rank {data['rank']}: {data}")
     
-    # 텍스트 파일 생성 없이 바로 엑셀 파일로 저장
+    # 텍스트 파일 생성 없이 바로 엑셀 파일로 저장 (원본 파일과 같은 경로)
     save_results_to_excel(ranked_data, file_path)
 
 if __name__ == "__main__":
