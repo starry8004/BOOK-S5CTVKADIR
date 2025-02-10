@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 300px; padding: 10px; }
+    .container { margin-bottom: 10px; }
+    #status { margin-top: 10px; padding: 5px; border-radius: 4px; }
+    .error { background-color: #ffe6e6; color: #cc0000; }
+    .success { background-color: #e6ffe6; color: #006600; }
+    .progress { margin-top: 5px; }
+    .keywords-preview {
+      max-height: 100px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      font-size: 12px;
+    }
+  </style>
+  <!-- XLSX 라이브러리 추가 -->
+  <script src="xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+  </div>
+  <div class="container">
+    <label>자동 다운로드 단위:
+      <input type="number" id="batchSizeInput" value="10" min="1">
+    </label>
+  </div>
+  <div class="container">
+    <button id="startButton">검색 시작</button>
+    <button id="stopButton">중지</button>
+  </div>
+  <div id="status"></div>
+  <div class="progress">
+    진행률: <span id="progressText">0/0</span>
+  </div>
+  <div class="keywords-preview" id="keywordsPreview"></div>
+  <script src="selectors.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

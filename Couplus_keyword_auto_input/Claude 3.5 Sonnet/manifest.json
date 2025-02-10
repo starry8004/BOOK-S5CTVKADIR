@@ -1,0 +1,21 @@
+{
+    "manifest_version": 3,
+    "name": "COUPLUS Keyword Search Assistant",
+    "version": "1.0",
+    "description": "COUPLUS 키워드 검색 자동화 도구",
+    "permissions": [
+      "activeTab",
+      "storage",
+      "scripting"
+    ],
+    "host_permissions": [
+      "https://www.couplus.co.kr/*"
+    ],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "content_scripts": [{
+      "matches": ["https://www.couplus.co.kr/*"],
+      "js": ["content.js"]
+    }]
+  }

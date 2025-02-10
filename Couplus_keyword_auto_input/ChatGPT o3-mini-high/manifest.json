@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "검색 결과 감지 확장앱",
+    "version": "1.0",
+    "description": "검색 결과 테이블의 상태를 감지하여 다음 동작을 트리거하는 확장앱입니다.",
+    "content_scripts": [
+      {
+        "matches": ["https://www.couplus.co.kr/keyword*"],
+        "js": ["content.js"]
+      }
+    ],
+    "permissions": [
+      "scripting"
+    ]
+  }
+  
