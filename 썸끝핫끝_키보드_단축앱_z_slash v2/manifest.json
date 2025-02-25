@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+  "name": "썸끝핫끝_키보드_단축앱_z_slash v2",
+  "version": "2.0",
+  "description": "비즈니스PT 클릭 '좋음' or '나쁨' 마우스 클릭이 아니라 단축키로!!  keyboard shortcuts",
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://viewtrap.com/thumbnail-master/*",
+        "https://viewtrap.com/thumbnail-master?masterTp=hotVideo"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}

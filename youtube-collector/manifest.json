@@ -1,0 +1,30 @@
+{
+    "manifest_version": 2,
+    "name": "YouTube Title and URL Collector",
+    "version": "1.0",
+    "description": "Collects YouTube title and URL and saves it to Google Sheets",
+    "permissions": [
+      "activeTab",
+      "storage",
+      "https://sheets.googleapis.com/"
+    ],
+    "background": {
+      "scripts": ["background.js"],
+      "persistent": false
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://*.youtube.com/*"],
+        "js": ["content.js"]
+      }
+    ],
+    "commands": {
+      "collect_data": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+Y"
+        },
+        "description": "Collect YouTube title and URL"
+      }
+    }
+  }
+  

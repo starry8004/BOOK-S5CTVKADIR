@@ -1,0 +1,22 @@
+{
+    "manifest_version": 2,
+    "name": "YouTube to Google Sheets",
+    "version": "1.0",
+    "description": "YouTube 페이지의 제목과 URL을 Google Sheets에 저장합니다.",
+    "permissions": [
+      "activeTab",
+      "https://script.google.com/"
+    ],
+    "background": {
+      "scripts": ["background.js"],
+      "persistent": false
+    },
+    "commands": {
+      "collect-youtube-info": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+Y"
+        },
+        "description": "YouTube 정보 수집"
+      }
+    }
+  }

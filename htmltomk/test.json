@@ -1,0 +1,16 @@
+{
+    "input": {
+        "prompt": "Enter the prompt here"
+    },
+    "output_format": {
+        "enum": [
+            "webp", "jpg", "png"
+        ],
+        "type": "string",
+        "title": "output_format",
+        "description": "Format of the output images",
+        "default": "png",
+        "x-order": 4
+    }
+}
+
