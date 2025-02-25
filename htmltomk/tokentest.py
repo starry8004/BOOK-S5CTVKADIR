@@ -16,5 +16,5 @@ def test_replicate_token(token):
         return False
 
 # 여기에 본인의 토큰을 넣으세요
-token = "r8_Z3oNv2NyrXAPFatgpw40Eih14CHTlYn0NnK6X"
+token = "replacement"
 test_replicate_token(token)
